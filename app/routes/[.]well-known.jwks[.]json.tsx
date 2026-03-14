@@ -10,7 +10,7 @@ export async function loader(_: LoaderFunctionArgs) {
   return json(jwks, {
     headers: {
       "Access-Control-Allow-Origin": "*",
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "no-store",
       "Content-Type": "application/json",
     },
   });
