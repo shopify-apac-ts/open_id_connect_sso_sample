@@ -1,9 +1,12 @@
 import { generateKeyPair, exportJWK, type KeyLike } from "jose";
+import { v4 as uuidv4 } from "uuid";
 
 let _privateKey: KeyLike | undefined;
 let _publicKey: KeyLike | undefined;
 let _publicJwk: Record<string, unknown> | undefined;
-const KEY_ID = "sso-test-key-1";
+// Generate a unique kid on each startup so relying parties (e.g. Shopify)
+// that cache JWKS by kid will see a new kid and re-fetch the key set.
+const KEY_ID = `sso-key-${uuidv4()}`;
 
 let _initPromise: Promise<void> | undefined;
 
