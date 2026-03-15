@@ -10,8 +10,8 @@ This is a separate topic from the OIDC provider sample in the repository root.
 
 | File | Description |
 |---|---|
-| `header_liquid_for_custom_login_page.liquid` | Header section snippet with three variants — original, full custom page, and redirect-only (see below) |
-| `custom_liquid_for_custom_login_page.liquid` | Custom Liquid block to embed in a Shopify page — renders a registration form (logged-out state) or a welcome screen (logged-in state) |
+| [header_liquid_for_custom_login_page.liquid](header_liquid_for_custom_login_page.liquid) | Header section snippet with three variants: (1) original, (2) custom login page + custom redirect, (3) standard login UI + custom redirect only |
+| [custom_liquid_for_custom_login_page.liquid](custom_liquid_for_custom_login_page.liquid) | Custom Liquid block to embed in a Shopify page — renders a registration form (logged-out state) or a welcome screen (logged-in state) |
 
 ---
 
@@ -92,11 +92,11 @@ The standard New Customer Accounts login UI is used as-is; only the post-login r
 1. In **Online Store → Themes → Customize**, open the **Header** section code.
 2. Find the account icon anchor tag and replace it with one of the three variants in `header_liquid_for_custom_login_page.liquid`:
 
-   | Variant | When to use |
-   |---|---|
-   | 1 — Original (commented out) | Baseline / rollback reference |
-   | 2 — Full custom page | Use with `custom_liquid_for_custom_login_page.liquid` (Option A) |
-   | 3 — Redirect-only (commented out) | Just change post-login destination, keep standard login UI (Option B) |
+   | Variant | Pattern | When to use |
+   |---|---|---|
+   | 1 — Original (commented out) | — | Baseline / rollback reference |
+   | 2 — Custom login page + custom redirect | Replaces both the login UI and the post-login destination | Use with `custom_liquid_for_custom_login_page.liquid` (Option A) |
+   | 3 — Standard login + custom redirect (commented out) | Keeps the standard New Customer Accounts login UI, changes only the post-login destination | Minimal change when you only need to control where customers land after login (Option B) |
 
 ---
 
