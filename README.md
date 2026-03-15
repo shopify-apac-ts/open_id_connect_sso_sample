@@ -74,3 +74,11 @@ In the Shopify admin or Partner Dashboard, enter the following SSO provider sett
 ## Test Login
 
 On the login screen, sign in with **any email address and password**. No real authentication is performed.
+
+## Related: Custom Login Page in Theme
+
+For a complementary approach — adding a custom login page and account page directly inside a Shopify theme while leveraging New Customer Accounts — see:
+
+**[theme/README.md](theme/README.md)**
+
+This shows how to redirect customers from the theme header into a branded registration form, then hand off to the `/customer_authentication/login` endpoint with pre-filled hints.

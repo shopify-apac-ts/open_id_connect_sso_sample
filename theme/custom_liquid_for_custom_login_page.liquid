@@ -1,0 +1,223 @@
+<style>
+  .howdy-register-wrap {
+    max-width: 480px;
+    margin: 48px auto;
+    padding: 40px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-family: inherit;
+  }
+  .howdy-register-wrap h2 {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .howdy-register-wrap p.subtitle {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-bottom: 32px;
+  }
+  .howdy-field {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .howdy-field.single { display: block; }
+  .howdy-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #374151;
+  }
+  .howdy-field input[type="text"],
+  .howdy-field input[type="email"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  .howdy-field input:focus {
+    outline: none;
+    border-color: #111827;
+  }
+  .howdy-field > div { flex: 1; }
+  .howdy-agree {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 20px 0 24px;
+    font-size: 0.875rem;
+    color: #374151;
+  }
+  .howdy-agree input[type="checkbox"] {
+    margin-top: 2px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .howdy-agree a { color: #111827; text-decoration: underline; }
+  .howdy-submit-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: #111827;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .howdy-submit-btn:hover { background: #374151; }
+  .howdy-register-wrap .divider {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    margin: 20px 0;
+  }
+  .howdy-login-link {
+    display: block;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  .howdy-login-link a { color: #111827; font-weight: 600; }
+  .howdy-error {
+    display: none;
+    color: #dc2626;
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+  .howdy-welcome-icon {
+    text-align: center;
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+  .howdy-welcome-name {
+    text-align: center;
+    font-size: 1.1rem;
+    color: #374151;
+    margin-bottom: 8px;
+  }
+  .howdy-welcome-email {
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 28px;
+  }
+  .howdy-welcome-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: #111827;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    box-sizing: border-box;
+    transition: background 0.2s;
+  }
+  .howdy-welcome-btn:hover { background: #374151; color: #fff; }
+  .howdy-welcome-btn.secondary {
+    background: #fff;
+    color: #111827;
+    border: 1px solid #d1d5db;
+    margin-top: 10px;
+  }
+  .howdy-welcome-btn.secondary:hover { background: #f9fafb; }
+</style>
+
+<div class="howdy-register-wrap">
+
+  {%- if customer -%}
+
+    <div class="howdy-welcome-icon">Welcome! 👋</div>
+    <h2>Welcome!</h2>
+    <p class="howdy-welcome-name">{{ customer.name }}</p>
+    <p class="howdy-welcome-email">{{ customer.email }}</p>
+    <a href="{{ routes.account_profile_url }}" class="howdy-welcome-btn">My Account</a>
+    <a href="{{ routes.account_logout_url }}" class="howdy-welcome-btn secondary">Log out</a>
+
+  {%- else -%}
+
+    <h2>Create an Account</h2>
+    <p class="subtitle">Sign up to receive the latest news and exclusive offers</p>
+
+    <div class="howdy-field">
+      <div>
+        <label for="reg-last-name">Last name</label>
+        <input type="text" id="reg-last-name" placeholder="Smith" autocomplete="family-name">
+      </div>
+      <div>
+        <label for="reg-first-name">First name</label>
+        <input type="text" id="reg-first-name" placeholder="John" autocomplete="given-name">
+      </div>
+    </div>
+
+    <div class="howdy-field single">
+      <label for="reg-email">Email address</label>
+      <input type="email" id="reg-email" placeholder="example@email.com" autocomplete="email">
+      <span class="howdy-error" id="reg-email-error">Please enter your email address</span>
+    </div>
+
+    <div class="howdy-agree">
+      <input type="checkbox" id="reg-agree">
+      <label for="reg-agree">
+        I agree to the <a href="{{ shop.url }}/policies/privacy-policy" target="_blank">Privacy Policy</a> and
+        <a href="{{ shop.url }}/policies/terms-of-service" target="_blank">Terms of Service</a>
+      </label>
+    </div>
+
+    <button class="howdy-submit-btn" id="reg-submit-btn">Sign up</button>
+
+    <div class="divider">or</div>
+    <p class="howdy-login-link">Already have an account? <a href="/customer_authentication/login?return_to={{ "/pages/custom-login-page" | url_encode }}">Log in</a></p>
+
+  {%- endif -%}
+
+</div>
+
+{%- unless customer -%}
+<script>
+  document.getElementById('reg-submit-btn').addEventListener('click', function () {
+    const email = document.getElementById('reg-email').value.trim();
+    const agree = document.getElementById('reg-agree').checked;
+    const emailError = document.getElementById('reg-email-error');
+
+    emailError.style.display = 'none';
+
+    if (!email) {
+      emailError.style.display = 'block';
+      return;
+    }
+    if (!agree) {
+      alert('You must agree to the Terms of Service and Privacy Policy.');
+      return;
+    }
+
+    const lastName = document.getElementById('reg-last-name').value.trim();
+    const firstName = document.getElementById('reg-first-name').value.trim();
+    if (lastName) sessionStorage.setItem('reg_last_name', lastName);
+    if (firstName) sessionStorage.setItem('reg_first_name', firstName);
+
+    const loginUrl = '/customer_authentication/login'
+      + '?return_to={{ "/pages/custom-login-page" | url_encode }}'
+      + '&login_hint_mode=submit'
+      + '&login_hint=' + encodeURIComponent(email);
+
+    window.location.href = loginUrl;
+  });
+</script>
+{%- endunless -%}
