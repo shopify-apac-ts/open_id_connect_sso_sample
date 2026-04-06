@@ -4,6 +4,7 @@ dist/
 .env
 .DS_Store
 package-lock.json
+pnpm-lock.yaml
 
 # Shopify CLI
 .shopify/
