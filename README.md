@@ -23,7 +23,7 @@ Built with Node.js + Remix (React Router).
 ### 1. Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 2. Configure environment variables
@@ -44,7 +44,7 @@ CLIENT_SECRET=<client secret registered in Shopify>
 ### 3. Start the development server
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ## Deploying to Render
