@@ -35,6 +35,15 @@ function oidcError(error: string, description?: string, status = 400) {
   );
 }
 
+function decodeJwtPayload(jwt: string): unknown {
+  try {
+    const payload = jwt.split(".")[1];
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+  } catch {
+    return "(decode failed)";
+  }
+}
+
 export async function action({ request }: ActionFunctionArgs) {
   // CORS preflight
   if (request.method === "OPTIONS") {
@@ -147,22 +156,24 @@ export async function action({ request }: ActionFunctionArgs) {
       signIdToken({ sub: userId, email, clientId: client_id, nonce, issuer: baseUrl, shopifyClaims }),
       signAccessToken({ sub: userId, email, issuer: baseUrl }),
     ]);
-    console.log("[token] id_token issued for sub:", userId, "| claims keys:", Object.keys(shopifyClaims));
-
     const newRefreshToken = uuidv4();
     storeRefreshToken(newRefreshToken, { userId, email, clientId: client_id, scope });
 
-    return json(
-      {
-        access_token: accessToken,
-        token_type: "Bearer",
-        expires_in: 3600,
-        id_token: idToken,
-        refresh_token: newRefreshToken,
-        scope,
-      },
-      { headers: corsHeaders }
-    );
+    const responseBody = {
+      access_token: accessToken,
+      token_type: "Bearer",
+      expires_in: 3600,
+      id_token: idToken,
+      refresh_token: newRefreshToken,
+      scope,
+    };
+    console.log("[token] response to Shopify:", JSON.stringify({
+      ...responseBody,
+      access_token_payload: decodeJwtPayload(accessToken),
+      id_token_payload: decodeJwtPayload(idToken),
+    }, null, 2));
+
+    return json(responseBody, { headers: corsHeaders });
   }
 
   // ── Refresh Token Grant ───────────────────────────────────────────────────
@@ -186,17 +197,21 @@ export async function action({ request }: ActionFunctionArgs) {
     const newRefreshToken = uuidv4();
     storeRefreshToken(newRefreshToken, rtData);
 
-    return json(
-      {
-        access_token: accessToken,
-        token_type: "Bearer",
-        expires_in: 3600,
-        id_token: idToken,
-        refresh_token: newRefreshToken,
-        scope,
-      },
-      { headers: corsHeaders }
-    );
+    const refreshResponseBody = {
+      access_token: accessToken,
+      token_type: "Bearer",
+      expires_in: 3600,
+      id_token: idToken,
+      refresh_token: newRefreshToken,
+      scope,
+    };
+    console.log("[token] refresh response to Shopify:", JSON.stringify({
+      ...refreshResponseBody,
+      access_token_payload: decodeJwtPayload(accessToken),
+      id_token_payload: decodeJwtPayload(idToken),
+    }, null, 2));
+
+    return json(refreshResponseBody, { headers: corsHeaders });
   }
 
   return oidcError("unsupported_grant_type");
