@@ -1,19 +1,28 @@
 // Customer Account UI Extension — SSO Profile Sync
-// Renders invisibly on the Profile page and runs once on mount (no polling).
+// Renders on the Profile page and runs once on mount (no polling).
 // Sync is performed when the merchant setting "sync_enabled" is true (default: true).
 //
 //   Phase A (storage empty): Fetch SSO data via /userinfo, push to Customer Account API,
-//                            cache the profile in storage, then navigate to refresh the page.
+//                            cache the profile in storage, then show a "Reload" banner.
 //   Phase B (storage present): Query current customer data, compare with cached SSO data,
-//                              revert any customer-initiated changes by re-applying SSO data,
-//                              then navigate to refresh the page.
+//                              revert any drift by re-applying SSO data, then show a "Reload" banner.
 //
-// Navigation guard (sso_nav_guard) prevents an infinite loop after Phase A/B redirects.
+// A loading indicator is shown while sync API calls are in progress.
+// The user clicks the banner button to navigate to the profile page and see the updated data.
 // Toggle is controlled via the extension setting in the Shopify merchant admin (not customer-facing).
 
 import "@shopify/ui-extensions/preact";
 import { render } from "preact";
-import { useEffect } from "preact/hooks";
+import { useState, useEffect } from "preact/hooks";
+
+// Allow s-* web component tags in JSX
+declare module "preact" {
+  namespace JSX {
+    interface IntrinsicElements {
+      [key: string]: any;
+    }
+  }
+}
 
 // Declare the global shopify object provided by the extension runtime
 declare const shopify: {
@@ -29,8 +38,6 @@ declare const shopify: {
 };
 
 const STORAGE_KEY = "sso_profile_data";
-const NAV_GUARD_KEY = "sso_nav_guard";
-const SHOW_TOAST_KEY = "sso_show_toast";
 
 const CUSTOMER_API_URL =
   "shopify://customer-account/api/2026-01/graphql.json";
@@ -194,6 +201,8 @@ function profileMatchesCustomer(
 // -- Extension component --
 
 function SsoProfileSync() {
+  const [status, setStatus] = useState<"idle" | "processing" | "synced">("idle");
+
   useEffect(() => {
     void run();
 
@@ -206,33 +215,19 @@ function SsoProfileSync() {
           return;
         }
 
-        // Check nav guard — cleared once after each sync-triggered navigation
-        const guard = await shopify.storage.read(NAV_GUARD_KEY);
-        if (guard) {
-          await shopify.storage.delete(NAV_GUARD_KEY);
-          // Show toast if sync just completed
-          const showToast = await shopify.storage.read(SHOW_TOAST_KEY);
-          if (showToast) {
-            await shopify.storage.delete(SHOW_TOAST_KEY);
-            shopify.toast.show(
-              "Your name and address have been updated from the SSO server.",
-              { duration: 5000 }
-            );
-          }
-          return;
-        }
-
         const stored = await shopify.storage.read<SsoProfile>(STORAGE_KEY);
 
         if (!stored) {
           // ── Phase A: Initial sync ─────────────────────────────────────────
-          const token = await shopify.sessionToken.get();
+          setStatus("processing");
 
+          const token = await shopify.sessionToken.get();
           const res = await fetch(`${SSO_BASE_URL}/userinfo`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (!res.ok) {
             console.error("[sso-sync] userinfo fetch failed:", res.status);
+            setStatus("idle");
             return;
           }
           const profile: SsoProfile = await res.json();
@@ -240,16 +235,20 @@ function SsoProfileSync() {
           const customer = await queryCustomer();
           if (!customer) {
             console.error("[sso-sync] failed to query customer");
+            setStatus("idle");
             return;
           }
 
           await updateCustomerName(profile.given_name, profile.family_name);
-          await upsertAddress(customer.defaultAddress?.id ?? null, profile.address, profile.given_name, profile.family_name);
-
+          await upsertAddress(
+            customer.defaultAddress?.id ?? null,
+            profile.address,
+            profile.given_name,
+            profile.family_name
+          );
           await shopify.storage.write(STORAGE_KEY, profile);
-          await shopify.storage.write(NAV_GUARD_KEY, "1");
-          await shopify.storage.write(SHOW_TOAST_KEY, "1");
-          shopify.navigation.navigate("shopify:customer-account/profile");
+
+          setStatus("synced");
         } else {
           // ── Phase B: Revert if customer edited profile ────────────────────
           const customer = await queryCustomer();
@@ -260,6 +259,8 @@ function SsoProfileSync() {
 
           if (!profileMatchesCustomer(stored, customer)) {
             console.log("[sso-sync] drift detected — reverting to SSO data");
+            setStatus("processing");
+
             await updateCustomerName(stored.given_name, stored.family_name);
             await upsertAddress(
               customer.defaultAddress?.id ?? null,
@@ -267,19 +268,43 @@ function SsoProfileSync() {
               stored.given_name,
               stored.family_name
             );
-            await shopify.storage.write(NAV_GUARD_KEY, "1");
-            await shopify.storage.write(SHOW_TOAST_KEY, "1");
-            // Use reload instead of navigate() — navigating to the same page is a SPA no-op
-            window.location.reload();
+
+            setStatus("synced");
           }
         }
       } catch (err) {
         console.error("[sso-sync] unexpected error:", err);
+        setStatus("idle");
       }
     }
   }, []);
 
-  // Render nothing — this extension is purely behavioral
+  if (status === "processing") {
+    return (
+      <s-stack direction="inline" gap="base" align-items="center">
+        <s-spinner size="small" accessibility-label="Syncing" />
+        <s-text>Syncing profile with SSO server...</s-text>
+      </s-stack>
+    );
+  }
+
+  if (status === "synced") {
+    return (
+      <s-banner heading="Profile Synced" tone="success">
+        <s-text>Your name and address have been updated from the SSO server.</s-text>
+        <s-button
+          onClick={() => {
+            shopify.toast.show("Profile synced from SSO server.", { duration: 4000 });
+            shopify.navigation.navigate("shopify:customer-account/profile");
+          }}
+        >
+          Reload page to view updates
+        </s-button>
+      </s-banner>
+    );
+  }
+
+  // Render nothing when in sync is not needed
   return null;
 }
 
