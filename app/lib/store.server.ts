@@ -23,7 +23,7 @@ export function getSsoTestProfile(_userId: string): SsoProfile {
     address: {
       street_address: "1-1-1 SSO Chiyoda\nChiyoda Building 101",
       locality: "Chiyoda-ku",
-      region: "Tokyo",
+      region: "JP-13",
       postal_code: "100-0001",
       country: "JP",
     },
