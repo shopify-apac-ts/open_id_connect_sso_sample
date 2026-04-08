@@ -35,6 +35,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return errorResponse("unauthorized_client", "Unknown client_id", 401);
   }
 
+  // Log all incoming parameters from Shopify for debugging
+  console.log("[authorize] incoming params:", JSON.stringify(Object.fromEntries(p.entries())));
+
   // Forward all parameters to the login page
   const loginUrl = new URL("/login", url.origin);
   for (const [key, value] of p.entries()) {
