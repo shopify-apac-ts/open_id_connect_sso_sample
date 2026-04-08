@@ -170,8 +170,9 @@ function profileMatchesCustomer(
   profile: SsoProfile,
   customer: CustomerData
 ): boolean {
-  if (customer.firstName !== profile.given_name) return false;
-  if (customer.lastName !== profile.family_name) return false;
+  // Normalize null to "" for comparison — Customer API returns null for empty fields
+  if ((customer.firstName ?? "") !== profile.given_name) return false;
+  if ((customer.lastName ?? "") !== profile.family_name) return false;
 
   const addr = customer.defaultAddress;
   if (!addr) return false;
@@ -181,12 +182,12 @@ function profileMatchesCustomer(
   const address2 = lines[1] ?? "";
 
   return (
-    addr.address1 === address1 &&
-    addr.address2 === address2 &&
-    addr.city === profile.address.locality &&
-    addr.zoneCode === profile.address.region &&
-    addr.zip === profile.address.postal_code &&
-    addr.territoryCode === profile.address.country
+    (addr.address1 ?? "") === address1 &&
+    (addr.address2 ?? "") === address2 &&
+    (addr.city ?? "") === profile.address.locality &&
+    (addr.zoneCode ?? "") === profile.address.region &&
+    (addr.zip ?? "") === profile.address.postal_code &&
+    (addr.territoryCode ?? "") === profile.address.country
   );
 }
 

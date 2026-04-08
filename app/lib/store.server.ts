@@ -14,15 +14,14 @@ export interface SsoProfile {
   address: OidcAddress;
 }
 
-// Returns a fresh test profile on every call.
-// address2 contains the current ISO timestamp to make changes visible on each sync.
+// Returns a stable test profile. The address is fixed so the extension can
+// detect real drift (SSO vs Customer API) without artificial churn.
 export function getSsoTestProfile(_userId: string): SsoProfile {
-  const ts = new Date().toISOString();
   return {
     given_name: "Taro SSO",
     family_name: "Yamada",
     address: {
-      street_address: `1-1-1 SSO Chiyoda\nChiyoda Building 101 (${ts})`,
+      street_address: "1-1-1 SSO Chiyoda\nChiyoda Building 101",
       locality: "Chiyoda-ku",
       region: "Tokyo",
       postal_code: "100-0001",
