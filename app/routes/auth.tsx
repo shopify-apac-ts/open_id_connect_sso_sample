@@ -6,7 +6,6 @@
 //   Content-Security-Policy: frame-ancestors https://admin.shopify.com https://<shop>.myshopify.com;
 // to allow Shopify Admin to embed this app in an iframe.
 import type { LoaderFunctionArgs } from "@remix-run/node";
-import { redirect } from "@remix-run/node";
 import { createHmac } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { hasShopToken, storePendingNonce } from "~/lib/shop-token-cache.server";
@@ -92,7 +91,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const nonce = uuidv4();
   storePendingNonce(nonce, shop);
 
-  const baseUrl = process.env.BASE_URL ?? url.origin;
+  // Strip trailing slash to avoid double-slash in redirect_uri
+  const baseUrl = (process.env.BASE_URL ?? url.origin).replace(/\/$/, "");
   const authUrl = new URL(`https://${shop}/admin/oauth/authorize`);
   authUrl.searchParams.set("client_id", apiKey);
   authUrl.searchParams.set("scope", "read_customers");
@@ -100,5 +100,24 @@ export async function loader({ request }: LoaderFunctionArgs) {
   authUrl.searchParams.set("state", nonce);
 
   console.log("[auth] initiating OAuth for shop:", shop, "→", authUrl.toString());
-  return redirect(authUrl.toString());
+
+  // Shopify's OAuth page has frame-ancestors 'none' so a server-side redirect inside
+  // the Admin iframe would be blocked by the browser. Use window.top.location to
+  // break out of the iframe and perform a top-level navigation instead.
+  const csp = frameAncestorsHeader(shop);
+  return new Response(
+    `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="shopify-api-key" content="${apiKey}" />
+  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+  <script>
+    (window.top || window).location.assign(${JSON.stringify(authUrl.toString())});
+  </script>
+</head>
+<body><p>Redirecting to Shopify authorization...</p></body>
+</html>`,
+    { status: 200, headers: { "Content-Type": "text/html", "Content-Security-Policy": csp } }
+  );
 }
