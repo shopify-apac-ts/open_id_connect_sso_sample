@@ -15,5 +15,8 @@ api_version = "2026-04"
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = ""
 
+[access_scopes.customer_account_api]
+scopes = "customer_read_customers,customer_write_customers"
+
 [auth]
 redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
