@@ -13,3 +13,4 @@ services:
       # BASE_URL: The URL Render assigns after deployment (e.g. https://your-service.onrender.com)
       # CLIENT_ID: Client ID to register in Shopify
       # CLIENT_SECRET: Client secret to register in Shopify
+      # SHOPIFY_API_SECRET: API secret key of your Shopify app (used to verify session tokens in /userinfo)
