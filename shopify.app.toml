@@ -2,7 +2,7 @@
 
 client_id = "85100174ebeb78b4dcedfdfe7d2ff34a"
 name = "CustomerAccountSSOApp"
-application_url = "https://shopify.dev/apps/default-app-home"
+application_url = "https://open-id-connect-sso-sample.onrender.com/auth"
 embedded = true
 
 [build]
@@ -13,7 +13,7 @@ api_version = "2026-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "customer_read_customers,customer_write_customers"
+scopes = "read_customers,customer_read_customers,customer_write_customers"
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+redirect_urls = [ "https://open-id-connect-sso-sample.onrender.com/auth/callback" ]

@@ -2,11 +2,17 @@
 // Accepts both:
 //   - Shopify session tokens (HS256, signed with SHOPIFY_API_SECRET)
 //   - OIDC access tokens (RS256, signed with this server's RSA private key)
+//
+// When a Shopify session token is used, the customer GID (sub claim) and shop
+// domain (dest claim) are extracted. The shop's Admin API token is looked up
+// from the in-memory cache and used to resolve the real email via Admin API.
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { jwtVerify } from "jose";
 import { getPublicKey } from "~/lib/keys.server";
 import { getBaseUrl } from "~/lib/oidc.server";
 import { getSsoTestProfile } from "~/lib/store.server";
+import { getShopToken } from "~/lib/shop-token-cache.server";
+import { fetchEmailByGid } from "~/lib/admin-api.server";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,7 +44,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const token = authHeader.slice(7);
 
-  // Try Shopify session token (HS256) first, then fall back to OIDC access token (RS256)
   let sub: string | undefined;
   let email: string | undefined;
 
@@ -50,16 +55,31 @@ export async function loader({ request }: LoaderFunctionArgs) {
       const { payload } = await jwtVerify(token, secretKey, {
         algorithms: ["HS256"],
       });
-      // Shopify session tokens do not include a `sub` claim — use `jti` as identifier
       const p = payload as Record<string, unknown>;
-      sub = (payload.sub ?? p.jti ?? p.aud) as string | undefined;
+      // sub is the customer GID (e.g. "gid://shopify/Customer/12345")
+      sub = payload.sub as string | undefined;
       const dest = p.dest as string | undefined;
-      try {
-        email = dest ? `customer@${new URL(dest).hostname}` : undefined;
-      } catch {
-        email = undefined;
+      console.log("[userinfo] verified via HS256 (Shopify session token) | sub:", sub, "| dest:", dest);
+
+      // Resolve real email via Admin API if we have the shop token cached
+      if (sub && dest) {
+        try {
+          const shopDomain = new URL(dest).hostname;
+          const shopToken = getShopToken(shopDomain);
+          if (shopToken) {
+            const resolvedEmail = await fetchEmailByGid(shopDomain, shopToken, sub);
+            if (resolvedEmail) {
+              email = resolvedEmail;
+            } else {
+              console.warn("[userinfo] Admin API returned no email for GID:", sub);
+            }
+          } else {
+            console.warn("[userinfo] no Admin API token cached for shop:", shopDomain, "— install the app first via /auth?shop=<domain>");
+          }
+        } catch (err) {
+          console.warn("[userinfo] failed to resolve email via Admin API:", (err as Error).message);
+        }
       }
-      console.log("[userinfo] verified via HS256 (Shopify session token) | payload:", JSON.stringify(payload));
     } catch (err) {
       console.log("[userinfo] HS256 verification failed, falling back to RS256 |", (err as Error).message);
     }
@@ -88,11 +108,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return unauthorized();
   }
 
+  // Fall back to a placeholder email if Admin API resolution was unavailable
+  if (!email) {
+    email = `${sub}@test.invalid`;
+    console.warn("[userinfo] using fallback email:", email);
+  }
+
   const profile = getSsoTestProfile(sub);
 
   const responseBody = {
     sub,
-    email: email ?? `${sub}@test.invalid`,
+    email,
     email_verified: true,
     given_name: profile.given_name,
     family_name: profile.family_name,
