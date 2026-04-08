@@ -39,6 +39,7 @@ BASE_URL=http://localhost:3000   # Change to your Render URL after deployment
 SESSION_SECRET=<random string>
 CLIENT_ID=<client ID registered in Shopify>
 CLIENT_SECRET=<client secret registered in Shopify>
+SHOPIFY_API_SECRET=<API secret key of your Shopify app>
 ```
 
 ### 3. Start the development server
@@ -55,6 +56,7 @@ pnpm dev
    - `BASE_URL`: The URL Render assigns to your service (e.g. `https://your-service.onrender.com`)
    - `CLIENT_ID`: Any string — must match exactly what you register in Shopify
    - `CLIENT_SECRET`: Any string — must match exactly what you register in Shopify
+   - `SHOPIFY_API_SECRET`: API secret key of your Shopify app (used to verify session tokens in `/userinfo`)
    - `SESSION_SECRET`: Auto-generated via `render.yaml` (no action needed)
 
 > **Note**: The Render Free plan spins down on idle. When it wakes up, the RSA key pair is regenerated and any existing tokens become invalid. This is expected behavior for testing purposes.
