@@ -2,13 +2,14 @@
 // Renders on the Profile page and runs once on mount (no polling).
 // Sync is performed when the merchant setting "sync_enabled" is true (default: true).
 //
-//   Phase A (storage empty): Fetch SSO data via /userinfo, push to Customer Account API,
-//                            cache the profile in storage, then show a "Reload" banner.
-//   Phase B (storage present): Query current customer data, compare with cached SSO data,
-//                              revert any drift by re-applying SSO data, then show a "Reload" banner.
+// On every page load:
+//   1. Fetch SSO profile from /userinfo (requires session token).
+//      queryCustomer() runs in parallel while the session token is being obtained.
+//   2. Compare SSO profile with current customer data.
+//   3. If different, overwrite via mutation and show a success banner.
+//   4. If already in sync, render nothing.
 //
-// A loading indicator is shown while sync API calls are in progress.
-// The user clicks the banner button to navigate to the profile page and see the updated data.
+// A loading indicator is shown while API calls are in progress.
 // Toggle is controlled via the extension setting in the Shopify merchant admin (not customer-facing).
 
 import "@shopify/ui-extensions/preact";
@@ -27,17 +28,8 @@ declare module "preact" {
 // Declare the global shopify object provided by the extension runtime
 declare const shopify: {
   sessionToken: { get(): Promise<string> };
-  storage: {
-    read<T = unknown>(key: string): Promise<T | null>;
-    write(key: string, data: unknown): Promise<void>;
-    delete(key: string): Promise<void>;
-  };
-  navigation: { navigate(url: string): void };
   settings: { value: Record<string, string | number | boolean | undefined> | null };
-  toast: { show(message: string, options?: { duration?: number }): void };
 };
-
-const STORAGE_KEY = "sso_profile_data";
 
 const CUSTOMER_API_URL =
   "shopify://customer-account/api/2026-01/graphql.json";
@@ -215,63 +207,46 @@ function SsoProfileSync() {
           return;
         }
 
-        const stored = await shopify.storage.read<SsoProfile>(STORAGE_KEY);
+        setStatus("processing");
 
-        if (!stored) {
-          // ── Phase A: Initial sync ─────────────────────────────────────────
-          setStatus("processing");
+        // Fetch session token and current customer data in parallel
+        const [token, customer] = await Promise.all([
+          shopify.sessionToken.get(),
+          queryCustomer(),
+        ]);
 
-          const token = await shopify.sessionToken.get();
-          const res = await fetch(`${SSO_BASE_URL}/userinfo`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!res.ok) {
-            console.error("[sso-sync] userinfo fetch failed:", res.status);
-            setStatus("idle");
-            return;
-          }
-          const profile: SsoProfile = await res.json();
-
-          const customer = await queryCustomer();
-          if (!customer) {
-            console.error("[sso-sync] failed to query customer");
-            setStatus("idle");
-            return;
-          }
-
-          await updateCustomerName(profile.given_name, profile.family_name);
-          await upsertAddress(
-            customer.defaultAddress?.id ?? null,
-            profile.address,
-            profile.given_name,
-            profile.family_name
-          );
-          await shopify.storage.write(STORAGE_KEY, profile);
-
-          setStatus("synced");
-        } else {
-          // ── Phase B: Revert if customer edited profile ────────────────────
-          const customer = await queryCustomer();
-          if (!customer) {
-            console.error("[sso-sync] failed to query customer");
-            return;
-          }
-
-          if (!profileMatchesCustomer(stored, customer)) {
-            console.log("[sso-sync] drift detected — reverting to SSO data");
-            setStatus("processing");
-
-            await updateCustomerName(stored.given_name, stored.family_name);
-            await upsertAddress(
-              customer.defaultAddress?.id ?? null,
-              stored.address,
-              stored.given_name,
-              stored.family_name
-            );
-
-            setStatus("synced");
-          }
+        if (!customer) {
+          console.error("[sso-sync] failed to query customer");
+          setStatus("idle");
+          return;
         }
+
+        const res = await fetch(`${SSO_BASE_URL}/userinfo`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          console.error("[sso-sync] userinfo fetch failed:", res.status);
+          setStatus("idle");
+          return;
+        }
+        const profile: SsoProfile = await res.json();
+
+        if (profileMatchesCustomer(profile, customer)) {
+          console.log("[sso-sync] no changes needed — data already matches SSO");
+          setStatus("idle");
+          return;
+        }
+
+        console.log("[sso-sync] SSO data differs — updating customer profile");
+        await updateCustomerName(profile.given_name, profile.family_name);
+        await upsertAddress(
+          customer.defaultAddress?.id ?? null,
+          profile.address,
+          profile.given_name,
+          profile.family_name
+        );
+
+        setStatus("synced");
       } catch (err) {
         console.error("[sso-sync] unexpected error:", err);
         setStatus("idle");
@@ -291,15 +266,7 @@ function SsoProfileSync() {
   if (status === "synced") {
     return (
       <s-banner heading="Profile Synced" tone="success">
-        <s-text>Your name and address have been updated from the SSO server.</s-text>
-        <s-button
-          onClick={() => {
-            shopify.toast.show("Profile synced from SSO server.", { duration: 4000 });
-            shopify.navigation.navigate("shopify:customer-account/profile");
-          }}
-        >
-          Reload page to view updates
-        </s-button>
+        <s-text>Your name and address have been updated from the SSO server. Please reload this page to see the latest data.</s-text>
       </s-banner>
     );
   }
