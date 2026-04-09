@@ -1,5 +1,5 @@
 // Customer Account UI Extension — SSO Profile Sync
-// Renders on the Profile page and runs once on mount (no polling).
+// Renders on the Profile page and Order Index page; runs once on mount (no polling).
 // Sync is performed when the merchant setting "sync_enabled" is true (default: true).
 //
 // On every page load:

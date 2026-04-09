@@ -44,18 +44,18 @@ sequenceDiagram
 
 ## Flow 2 — Customer Account UI Extension (userinfo → Customer Data Overwrite)
 
-Runs on every Profile page load. Fetches the SSO profile and overwrites Shopify customer data if it differs.
+Runs on every page load (Profile page and Order Index page). Fetches the SSO profile and overwrites Shopify customer data if it differs.
 
 ```mermaid
 sequenceDiagram
     actor Customer
-    participant Extension as UI Extension<br>(Profile page, Preact)
+    participant Extension as UI Extension<br>(Profile / Order Index page, Preact)
     participant SessionToken as Shopify Session Token
     participant CustAPI as Customer Account API<br>(shopify://customer-account/...)
     participant OP as SSO Server<br>/userinfo
     participant AdminAPI as Shopify Admin API
 
-    Customer->>Extension: View Profile page
+    Customer->>Extension: View Profile or Order Index page
     Extension->>Extension: Check merchant setting sync_enabled
     par Parallel fetch
         Extension->>SessionToken: shopify.sessionToken.get()
