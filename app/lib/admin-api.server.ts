@@ -157,7 +157,7 @@ export async function upsertCustomerAddressByGid(
     // Update existing address via customerAddressUpdate
     const updateQuery = `mutation CustomerAddressUpdate($customerId: ID!, $addressId: ID!, $address: MailingAddressInput!) {
       customerAddressUpdate(customerId: $customerId, addressId: $addressId, address: $address) {
-        customerAddress { id }
+        address { id }
         userErrors { field message }
       }
     }`;
@@ -165,7 +165,7 @@ export async function upsertCustomerAddressByGid(
       customerId: gid,
       addressId: addressGid,
       address: addressInput,
-    })) as { data?: { customerAddressUpdate?: { userErrors?: { field: string; message: string }[] } } };
+    })) as { data?: { customerAddressUpdate?: { address?: { id: string }; userErrors?: { field: string; message: string }[] } } };
     const errors = json.data?.customerAddressUpdate?.userErrors;
     if (errors && errors.length > 0) {
       console.error("[admin-api] customerAddressUpdate userErrors:", JSON.stringify(errors));
@@ -174,14 +174,14 @@ export async function upsertCustomerAddressByGid(
     // Create new address via customerAddressCreate
     const createQuery = `mutation CustomerAddressCreate($customerId: ID!, $address: MailingAddressInput!) {
       customerAddressCreate(customerId: $customerId, address: $address) {
-        customerAddress { id }
+        address { id }
         userErrors { field message }
       }
     }`;
     const json = (await adminGraphql(shop, accessToken, createQuery, {
       customerId: gid,
       address: addressInput,
-    })) as { data?: { customerAddressCreate?: { userErrors?: { field: string; message: string }[] } } };
+    })) as { data?: { customerAddressCreate?: { address?: { id: string }; userErrors?: { field: string; message: string }[] } } };
     const errors = json.data?.customerAddressCreate?.userErrors;
     if (errors && errors.length > 0) {
       console.error("[admin-api] customerAddressCreate userErrors:", JSON.stringify(errors));
