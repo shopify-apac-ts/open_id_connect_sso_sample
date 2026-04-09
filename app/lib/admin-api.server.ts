@@ -2,22 +2,28 @@
 // Results are cached in-memory since GIDs are immutable.
 import { getCachedEmail, setCachedEmail } from "~/lib/shop-token-cache.server";
 
+export interface AdminApiResult {
+  email: string;
+  queryStr: string;
+  responseStr: string;
+}
+
 export async function fetchEmailByGid(
   shop: string,
   accessToken: string,
   gid: string
-): Promise<string | undefined> {
+): Promise<AdminApiResult | undefined> {
   const cached = getCachedEmail(gid);
   if (cached) {
     console.log("[admin-api] GID→email cache hit:", gid, "→", cached);
-    return cached;
+    // Return cached email without query/response strings (already resolved previously)
+    return { email: cached, queryStr: "(cached)", responseStr: "(cached)" };
   }
 
-  const query = `query GetCustomerEmail($id: ID!) {
-        customer(id: $id) { email }
-      }`;
+  const query = `query GetCustomerEmail($id: ID!) { customer(id: $id) { email } }`;
   const variables = { id: gid };
-  console.log("[admin-api] GraphQL request → shop:", shop, "| query:", query.replace(/\s+/g, " ").trim(), "| variables:", JSON.stringify(variables));
+  const queryStr = `${query} variables:${JSON.stringify(variables)}`;
+  console.log("[admin-api] GraphQL request → shop:", shop, "|", queryStr);
 
   const res = await fetch(`https://${shop}/admin/api/2026-04/graphql.json`, {
     method: "POST",
@@ -41,19 +47,20 @@ export async function fetchEmailByGid(
     errors?: unknown[];
   };
 
-  console.log("[admin-api] GraphQL response body:", JSON.stringify(json));
+  const responseStr = JSON.stringify(json);
+  console.log("[admin-api] GraphQL response body:", responseStr);
 
   if (json.errors) {
-    console.error("[admin-api] GraphQL errors:", JSON.stringify(json.errors));
+    console.error("[admin-api] GraphQL errors:", responseStr);
   }
 
   const email = json.data?.customer?.email;
   if (email) {
     setCachedEmail(gid, email);
     console.log("[admin-api] GID→email resolved:", gid, "→", email);
+    return { email, queryStr, responseStr };
   } else {
     console.warn("[admin-api] customer not found for GID:", gid);
+    return undefined;
   }
-
-  return email;
 }

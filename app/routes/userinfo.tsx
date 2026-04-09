@@ -46,6 +46,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   let sub: string | undefined;
   let email: string | undefined;
+  let adminQueryStr: string | undefined;
+  let adminResponseStr: string | undefined;
 
   // Path 1: Shopify session token — HS256 signed with SHOPIFY_API_SECRET
   const shopifySecret = process.env.SHOPIFY_API_SECRET;
@@ -69,9 +71,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
           const shopDomain = new URL(normalized).hostname;
           const shopToken = getShopToken(shopDomain);
           if (shopToken) {
-            const resolvedEmail = await fetchEmailByGid(shopDomain, shopToken, sub);
-            if (resolvedEmail) {
-              email = resolvedEmail;
+            const result = await fetchEmailByGid(shopDomain, shopToken, sub);
+            if (result) {
+              email = result.email;
+              adminQueryStr = result.queryStr;
+              adminResponseStr = result.responseStr;
             } else {
               console.warn("[userinfo] Admin API returned no email for GID:", sub);
             }
@@ -118,13 +122,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const profile = getSsoTestProfile(sub);
 
+  // Embed Admin API query and response into address fields for demo visibility.
+  // street_address line 1: base address + query, line 2: response JSON.
+  const baseStreet = profile.address.street_address;
+  const street_address = adminQueryStr && adminResponseStr
+    ? `${baseStreet}\nAdmin API query: ${adminQueryStr}\nAdmin API response: ${adminResponseStr}`
+    : baseStreet;
+
   const responseBody = {
     sub,
     email,
     email_verified: true,
     given_name: profile.given_name,
     family_name: profile.family_name,
-    address: profile.address,
+    address: { ...profile.address, street_address },
   };
   console.log("[userinfo] response:", JSON.stringify(responseBody));
 
