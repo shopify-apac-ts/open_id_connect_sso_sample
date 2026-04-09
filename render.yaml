@@ -13,5 +13,6 @@ services:
       # BASE_URL: The URL Render assigns after deployment (e.g. https://your-service.onrender.com)
       # CLIENT_ID: Client ID to register in Shopify
       # CLIENT_SECRET: Client secret to register in Shopify
+      # SHOPIFY_ADMIN_API_VERSION: Admin GraphQL API version (e.g. "2026-04")
       # SHOPIFY_API_KEY: API key (client_id) of your Shopify app — used for Admin API OAuth
       # SHOPIFY_API_SECRET: API secret key of your Shopify app — used for session token verification and OAuth HMAC

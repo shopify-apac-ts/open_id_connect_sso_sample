@@ -1,6 +1,7 @@
 // Admin API helper — resolves a Shopify customer GID to an email address.
 // Results are cached in-memory since GIDs are immutable.
 import { getCachedEmail, setCachedEmail } from "~/lib/shop-token-cache.server";
+import { ADMIN_API_VERSION } from "~/lib/api-version.server";
 
 export interface AdminApiResult {
   email: string;
@@ -25,7 +26,7 @@ export async function fetchEmailByGid(
   const queryStr = `${query} variables:${JSON.stringify(variables)}`;
   console.log("[admin-api] GraphQL request → shop:", shop, "|", queryStr);
 
-  const res = await fetch(`https://${shop}/admin/api/2026-04/graphql.json`, {
+  const res = await fetch(`https://${shop}/admin/api/${ADMIN_API_VERSION}/graphql.json`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
