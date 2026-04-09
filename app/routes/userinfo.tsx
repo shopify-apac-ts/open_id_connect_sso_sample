@@ -59,12 +59,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
       // sub is the customer GID (e.g. "gid://shopify/Customer/12345")
       sub = payload.sub as string | undefined;
       const dest = p.dest as string | undefined;
-      console.log("[userinfo] verified via HS256 (Shopify session token) | sub:", sub, "| dest:", dest);
+      console.log("[userinfo] verified via HS256 | sub:", sub, "| dest (raw):", JSON.stringify(dest));
 
       // Resolve real email via Admin API if we have the shop token cached
       if (sub && dest) {
         try {
-          const shopDomain = new URL(dest).hostname;
+          // dest may or may not include a protocol prefix
+          const normalized = dest.startsWith("http") ? dest : `https://${dest}`;
+          const shopDomain = new URL(normalized).hostname;
           const shopToken = getShopToken(shopDomain);
           if (shopToken) {
             const resolvedEmail = await fetchEmailByGid(shopDomain, shopToken, sub);
