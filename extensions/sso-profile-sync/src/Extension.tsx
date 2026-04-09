@@ -247,15 +247,18 @@ function SsoProfileSync() {
           return;
         }
 
-        const res = await fetch(`${SSO_BASE_URL}/userinfo`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const userinfoUrl = `${SSO_BASE_URL}/userinfo`;
+        const userinfoHeaders = { Authorization: `Bearer ${token}` };
+        console.log("[sso-sync] userinfo request → url:", userinfoUrl, "| headers:", JSON.stringify(userinfoHeaders));
+        const res = await fetch(userinfoUrl, { headers: userinfoHeaders });
+        console.log("[sso-sync] userinfo response status:", res.status);
         if (!res.ok) {
           console.error("[sso-sync] userinfo fetch failed:", res.status);
           setStatus("idle");
           return;
         }
         const profile: SsoProfile = await res.json();
+        console.log("[sso-sync] userinfo response body:", JSON.stringify(profile));
 
         if (profileMatchesCustomer(profile, customer)) {
           console.log("[sso-sync] no changes needed — data already matches SSO");
