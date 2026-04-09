@@ -61,6 +61,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   <h2>SSO Sample App</h2>
   <p>Admin API access token is active for <strong>${shop}</strong>.</p>
   <p>The app is ready to resolve customer GIDs to emails via the Admin API.</p>
+  <p><a href="/">Go to Top</a></p>
 </body>
 </html>`,
       { status: 200, headers: { "Content-Type": "text/html" } }
