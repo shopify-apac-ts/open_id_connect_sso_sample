@@ -1,6 +1,7 @@
 // Webhook handler for customers/update topic.
-// Shopify sends this when a customer's first name, last name, or addresses change
-// (filtered via shopify.app.toml: filter = "first_name:* OR last_name:* OR addresses:*").
+// Shopify sends this on any customer update (no field-level filter is applied —
+// Shopify webhook filters only support value conditions like "price > 100",
+// not field-change detection, so all updates are received and logged in full).
 //
 // HMAC verification:
 //   Shopify signs the raw request body with SHOPIFY_API_SECRET using HMAC-SHA256
