@@ -23,6 +23,10 @@ export function hasShopToken(shop: string): boolean {
   return shopTokens.has(shop);
 }
 
+export function deleteShopToken(shop: string): void {
+  shopTokens.delete(shop);
+}
+
 export function getCachedEmail(gid: string): string | undefined {
   return gidEmailCache.get(gid);
 }

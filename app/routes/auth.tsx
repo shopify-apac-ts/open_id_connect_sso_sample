@@ -5,7 +5,8 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import { createHmac } from "crypto";
 import { v4 as uuidv4 } from "uuid";
-import { hasShopToken, storePendingNonce } from "~/lib/shop-token-cache.server";
+import { getShopToken, hasShopToken, deleteShopToken, storePendingNonce } from "~/lib/shop-token-cache.server";
+import { ADMIN_API_VERSION } from "~/lib/api-version.server";
 
 // Verify Shopify HMAC signature on incoming query params.
 // All params except "hmac" are sorted and joined, then signed with SHOPIFY_API_SECRET.
@@ -50,22 +51,46 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return new Response("HMAC verification failed", { status: 403 });
   }
 
-  // Admin API token already cached for this store — show app home
+  // If a token is cached, verify it is still valid by querying shop.name.
+  // Uninstalling the app immediately revokes the token, so a failed request
+  // means the merchant has uninstalled and reinstalled — clear the cache and
+  // fall through to the OAuth flow to obtain a fresh token.
   if (hasShopToken(shop)) {
-    console.log("[auth] shop already authorized:", shop);
-    return new Response(
-      `<!DOCTYPE html>
+    const token = getShopToken(shop)!;
+    const endpoint = `https://${shop}/admin/api/${ADMIN_API_VERSION}/graphql.json`;
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": token,
+        },
+        body: JSON.stringify({ query: "{ shop { name } }" }),
+      });
+      const json = (await res.json()) as { data?: { shop?: { name?: string } } };
+      const shopName = json.data?.shop?.name;
+      if (res.ok && shopName) {
+        console.log("[auth] cached token still valid for shop:", shop, "name:", shopName);
+        return new Response(
+          `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" /><title>SSO Sample App</title></head>
 <body>
   <h2>SSO Sample App</h2>
-  <p>Admin API access token is active for <strong>${shop}</strong>.</p>
+  <p>Admin API access token is active for <strong>${shop}</strong> (${shopName}).</p>
   <p>The app is ready to resolve customer GIDs to emails via the Admin API.</p>
   <p><a href="/">Go to Top</a></p>
 </body>
 </html>`,
-      { status: 200, headers: { "Content-Type": "text/html" } }
-    );
+          { status: 200, headers: { "Content-Type": "text/html" } }
+        );
+      }
+      // Token exists but query failed — treat as revoked
+      console.log("[auth] cached token invalid (revoked after uninstall) for shop:", shop, "— re-authorizing");
+    } catch (err) {
+      console.log("[auth] token validation fetch failed:", (err as Error).message, "— re-authorizing");
+    }
+    deleteShopToken(shop);
   }
 
   // Initiate OAuth Authorization Code Grant
