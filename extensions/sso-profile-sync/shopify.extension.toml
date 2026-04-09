@@ -10,6 +10,10 @@ type = "ui_extension"
 target = "customer-account.profile.block.render"
 module = "./src/Extension.tsx"
 
+[[extensions.targeting]]
+target = "customer-account.order-index.block.render"
+module = "./src/Extension.tsx"
+
 [extensions.capabilities]
 api_access = true
 network_access = true
