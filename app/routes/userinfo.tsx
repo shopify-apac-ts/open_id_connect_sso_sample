@@ -122,12 +122,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const profile = getSsoTestProfile(sub);
 
-  // Embed Admin API query and response into address fields for demo visibility.
-  // street_address line 1: base address + query, line 2: response JSON.
-  const baseStreet = profile.address.street_address;
+  // Embed Admin API query and response into address1/address2 for demo visibility.
+  // address1 (lines[0]): base street + " | Admin API query: ..."
+  // address2 (lines[1]): "Admin API response: ..."
+  // This ensures profileMatchesCustomer detects a diff and upsertAddress writes
+  // the values into Customer API on every sync.
+  const baseLines = profile.address.street_address.split("\n");
   const street_address = adminQueryStr && adminResponseStr
-    ? `${baseStreet}\nAdmin API query: ${adminQueryStr}\nAdmin API response: ${adminResponseStr}`
-    : baseStreet;
+    ? `${baseLines[0]} | Admin API query: ${adminQueryStr}\nAdmin API response: ${adminResponseStr}`
+    : profile.address.street_address;
 
   const responseBody = {
     sub,
