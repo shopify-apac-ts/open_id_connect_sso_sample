@@ -81,6 +81,8 @@ See the **[Wiki](../../wiki)** for demo videos of each scenario.
 
 On the login screen, sign in with **any email address and password**. No real authentication is performed.
 
+An optional **Sub override** field is available for testing. Leave it blank to use the default `user_xxxx` key derived from the email address. Enter any value to use it directly as the OIDC `sub` claim — useful for verifying how Shopify links customers by `sub` vs email (e.g. same email with different `sub` values, or vice versa).
+
 ## Related: Custom Login Page in Theme
 
 For a complementary approach — adding a custom login page and account page directly inside a Shopify theme while leveraging New Customer Accounts — see:
