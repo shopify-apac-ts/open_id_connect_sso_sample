@@ -73,6 +73,14 @@ In the Shopify admin or Partner Dashboard, enter the following SSO provider sett
 | Additional scopes | `profile` |
 | Logout redirect URI parameter name | `post_logout_redirect_uri` |
 
+## Architecture
+
+See **[ARCHITECTURE.md](ARCHITECTURE.md)** for sequence diagrams of all four flows:
+- Flow 0 — App Installation OAuth
+- Flow 1 — OIDC Authorization Code Flow (Login)
+- Flow 2 — Customer Account UI Extension (profile sync)
+- Flow 3 — Webhook (customers/update)
+
 ## Demo
 
 See the **[Wiki](../../wiki)** for demo videos of each scenario.
