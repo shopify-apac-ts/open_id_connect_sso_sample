@@ -74,7 +74,7 @@ sequenceDiagram
 - Shopify Customer Account is the OIDC Relying Party (RP); this SSO server is the OpenID Provider (OP).
 - `/authorize` validates `client_id`, `redirect_uri`, and `response_type`, then redirects the browser to the SSO Server's own `/login` page — not to any Shopify endpoint.
 - `/login` is the SSO Server's login UI. The customer enters credentials here, the server generates an authorization code, and redirects the browser back to Shopify's callback URL.
-- `/token` is called **server-to-server** by Shopify's backend (not a browser redirect), per RFC 6749 §4.1.3 and OpenID Connect Core §3.1.3. The user's browser waits at the callback URL while this exchange completes.
+- `/token` is called **server-to-server** by Shopify's backend (not a browser redirect), per [RFC 6749 §4.1.3](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.3) and [OpenID Connect Core §3.1.3](https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint). The user's browser waits at the callback URL while this exchange completes.
 - **`/token` (and all IdP endpoints) must respond within 1 second.** Shopify will time out the request and fail the login flow if this is exceeded. Ensure the server is hosted in a low-latency environment. See [Shopify IdP Requirements](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/requirements).
 - Shopify reads customer identity directly from the ID Token claims (`sub`, `email`, etc.) — `/userinfo` is **not** called during login. See Flow 2 for userinfo usage.
 
