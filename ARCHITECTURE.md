@@ -44,41 +44,37 @@ sequenceDiagram
 
 ---
 
-## Flow 1 — OIDC Authorization Code Flow (Login → Authorize → Profile Sync)
+## Flow 1 — OIDC Authorization Code Flow (Login → Authorize → Token)
 
-A Relying Party (RP / external service) authenticates a customer via this SSO server acting as an OpenID Connect Provider (OP).
+Shopify Customer Account acts as the Relying Party (RP) and authenticates a customer via this SSO server acting as an OpenID Connect Provider (OP).
 
 ```mermaid
 sequenceDiagram
     actor Customer
-    participant RP as Relying Party (External App)
-    participant OP as SSO Server (OP)<br>/authorize /token /userinfo
-    participant Shopify as Shopify Customer Account
-    participant AdminAPI as Shopify Admin API
+    participant RP as Shopify<br>(Customer Account RP)
+    participant OP as SSO Server (OP)<br>/authorize /login /token
 
     Customer->>RP: Access protected resource
-    RP->>OP: GET /authorize<br>(client_id, redirect_uri, scope=openid, nonce)
-    OP->>OP: Validate params, generate nonce
-    OP->>Shopify: Redirect to Shopify Customer Account login
-    Customer->>Shopify: Authenticate (email + password / SSO)
-    Shopify->>OP: Redirect back with session token
-    OP->>OP: Exchange session token → authorization code
-    OP->>RP: Redirect to redirect_uri with code
-    RP->>OP: POST /token (code, client_id, client_secret, redirect_uri)
-    OP->>OP: Verify code, sign ID Token (RS256) and Access Token
-    OP->>RP: ID Token + Access Token<br>(sub=GID, email, given_name, family_name, address)
-    RP->>OP: GET /userinfo<br>(Authorization: Bearer access_token)
-    OP->>OP: Verify token (RS256 via /jwks)
-    OP->>AdminAPI: query GetCustomerEmail(id: GID)
-    AdminAPI->>OP: email
-    OP->>RP: UserInfo JSON<br>(sub, email, given_name, family_name, address)
+    RP->>OP: GET /authorize<br>(client_id, redirect_uri, response_type=code,<br>scope=openid, code_challenge, nonce)
+    OP->>OP: Validate params (client_id, redirect_uri, response_type)
+    OP->>Customer: 302 Redirect → /login (SSO Server login page)
+    Customer->>OP: POST /login<br>(email, password; OIDC params as hidden fields)
+    OP->>OP: Authenticate, generate authorization code
+    OP->>Customer: 302 Redirect → redirect_uri?code=xxx&state=xxx
+    Customer->>RP: Browser arrives at Shopify callback with code
+    RP->>OP: POST /token<br>(code, client_id, client_secret, redirect_uri, code_verifier)<br>[server-to-server — not a browser redirect]
+    OP->>OP: Verify code + PKCE (S256), sign ID Token (RS256) and Access Token
+    OP->>RP: {id_token, access_token, refresh_token, expires_in}
+    RP->>RP: Verify ID Token claims, establish customer session
+    RP->>Customer: Redirect to storefront (logged in)
 ```
 
 **Key points:**
-- `/authorize` generates a nonce and redirects to Shopify Customer Account login.
-- `/token` issues RS256-signed ID Token and Access Token.
-- `/userinfo` accepts either HS256 session tokens or RS256 access tokens.
-- Customer email is resolved via Admin API (GID → email), cached in-memory.
+- Shopify Customer Account is the OIDC Relying Party (RP); this SSO server is the OpenID Provider (OP).
+- `/authorize` validates `client_id`, `redirect_uri`, and `response_type`, then redirects the browser to the SSO Server's own `/login` page — not to any Shopify endpoint.
+- `/login` is the SSO Server's login UI. The customer enters credentials here, the server generates an authorization code, and redirects the browser back to Shopify's callback URL.
+- `/token` is called **server-to-server** by Shopify's backend (not a browser redirect), per RFC 6749 §4.1.3 and OpenID Connect Core §3.1.3. The user's browser waits at the callback URL while this exchange completes.
+- Shopify reads customer identity directly from the ID Token claims (`sub`, `email`, etc.) — `/userinfo` is **not** called during login. See Flow 2 for userinfo usage.
 
 ---
 
