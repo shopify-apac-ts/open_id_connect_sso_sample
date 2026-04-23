@@ -44,7 +44,7 @@ sequenceDiagram
 
 ---
 
-## Flow 1 — OIDC Authorization Code Flow (Login → Authorize → Token)
+## Flow 1 — OIDC Authorization Code Flow (Login with profile sync)
 
 Shopify Customer Account acts as the Relying Party (RP) and authenticates a customer via this SSO server acting as an OpenID Connect Provider (OP).
 

@@ -77,7 +77,7 @@ In the Shopify admin or Partner Dashboard, enter the following SSO provider sett
 
 See **[ARCHITECTURE.md](ARCHITECTURE.md)** for sequence diagrams of all four flows:
 - Flow 0 — App Installation OAuth
-- Flow 1 — OIDC Authorization Code Flow (Login)
+- Flow 1 — OIDC Authorization Code Flow (Login with profile sync)
 - Flow 2 — Customer Account UI Extension (profile sync)
 - Flow 3 — Webhook (customers/update)
 
