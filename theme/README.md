@@ -79,6 +79,19 @@ The standard New Customer Accounts login UI is used as-is; only the post-login r
 
 ---
 
+## Limitations of the Registration Form
+
+The registration form in `custom_liquid_for_custom_login_page.liquid` (last name, first name, and the terms-of-service checkbox) is **cosmetic only**. These fields are not submitted to Shopify — the form JavaScript reads the email value and passes it to `/customer_authentication/login` as `login_hint`, but the name and checkbox values are discarded after being temporarily stored in `sessionStorage`.
+
+**To actually save name or address data to Shopify when a customer registers, a Shopify app is required.** The recommended approach is to use the [Customer Account API](https://shopify.dev/docs/api/customer) or the [Admin API](https://shopify.dev/docs/api/admin-graphql/latest/mutations/customerUpdate) from a custom app:
+
+1. After the customer completes the New Customer Accounts signup flow, the app receives an event or the customer is redirected back to the page.
+2. The app reads the name/address values (e.g., from `sessionStorage` or a server-side session) and calls the appropriate API mutation to update the customer record.
+
+This sample does not implement that app-side logic. It demonstrates only the theme-side redirect and pre-fill mechanism.
+
+---
+
 ## Setup in Shopify Admin
 
 ### 1. Create the page
