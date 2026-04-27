@@ -3,6 +3,15 @@
 A sample OpenID Connect (OIDC) Identity Provider for testing Shopify's Customer Account SSO integration.
 Built with Node.js + Remix (React Router).
 
+## Prerequisites
+
+Read these first before setting up:
+
+- [Connect a third-party identity provider](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/connect)
+- [Identity provider requirements](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/requirements)
+- [Customer Authentication API](https://shopify.dev/docs/api/customer-authentication)
+- [Customer API reference (unstable)](https://shopify.dev/docs/api/customer/unstable)
+
 ## Endpoints
 
 | Endpoint | Path | Source File |
@@ -191,3 +200,7 @@ For a complementary approach — adding a custom login page and account page dir
 **[theme/README.md](theme/README.md)**
 
 This shows how to redirect customers from the theme header into a branded registration form, then hand off to the `/customer_authentication/login` endpoint with pre-filled hints.
+
+## Disclaimer
+
+This sample is provided for testing and educational purposes only. It is **not** an official Shopify product or endorsed solution. The author makes no warranties and accepts no responsibility for any issues, bugs, or damages arising from its use. Content and behavior may change without notice.
