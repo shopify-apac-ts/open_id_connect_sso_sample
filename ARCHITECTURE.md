@@ -203,6 +203,7 @@ sequenceDiagram
 - Direction B (SSO → Shopify) mirrors what the UI Extension does, but server-side.
 - Non-2xx responses trigger automatic Shopify webhook retry.
 - `X-Shopify-Hmac-Sha256` is verified with `timingSafeEqual` to prevent timing attacks.
+- **Alternative for high-volume stores:** If simultaneous webhook bursts frequently exceed the Admin API rate limit, consider replacing the webhook-driven approach with a **scheduled batch job**. The batch queries Shopify for customers updated since the last run (e.g. using the `updatedAtMin` filter on the Customers API), then calls the Admin API sequentially to apply SSO profile overwrites. This trades near-real-time updates for predictable API usage and avoids the retry storm that webhooks can cause under load.
 
 ---
 
