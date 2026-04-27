@@ -157,6 +157,10 @@ Both services deploy from the same GitHub repository.
 | `SESSION_SECRET` | Random string |
 | `LOGIN_SERVER_URL` | `https://your-login-server.onrender.com` |
 | `PRIVATE_KEY_PEM` | PEM output from step 1 (with `\n` literals) |
+| `SHOPIFY_API_KEY` | API key of your Shopify app — required for Flow 0, 2, 3 |
+| `SHOPIFY_API_SECRET` | API secret key — required for Flow 0, 2, 3 |
+| `SHOPIFY_ADMIN_API_VERSION` | Admin API version (e.g. `2026-04`) — required for Flow 0, 2, 3 |
+| `WEBHOOK_DATA_SYNC` | `true` to enable data writes in Flow 3 (default) |
 
 **Login Server:**
 
