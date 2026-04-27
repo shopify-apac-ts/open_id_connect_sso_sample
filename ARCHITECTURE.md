@@ -91,6 +91,7 @@ sequenceDiagram
   See Flow 2 for `/userinfo` usage (UI Extension, post-login profile sync).
 
 - **Shopify-side setting required for profile sync:** For Shopify to apply these claims and overwrite the customer record at login, the identity provider's **Sync customer data** setting must be enabled in Shopify Admin (Settings → Customer accounts → Authentication → Manage providers), and the overwrite rule must be set to **Overwrite existing customer data**. Without this setting, the claims are received but not applied. See [Sync customer data](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/sync-customer-data).
+- **Refresh tokens are required to maintain the 90-day session.** Shopify's customer session can last up to 90 days, but the access token expires after 1 hour. Shopify calls `/token` with `grant_type=refresh_token` each time the access token expires to extend the session. If the refresh token is missing or fails verification, the customer session ends when the access token expires (1 hour after login). See [Session and token requirements](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/requirements#session-and-token-requirements) and Flow 4 for the refresh token sequence.
 
 ---
 
@@ -198,6 +199,34 @@ sequenceDiagram
 - Direction B (SSO → Shopify) mirrors what the UI Extension does, but server-side.
 - Non-2xx responses trigger automatic Shopify webhook retry.
 - `X-Shopify-Hmac-Sha256` is verified with `timingSafeEqual` to prevent timing attacks.
+
+---
+
+## Flow 4 — Refresh Token Grant (Session Renewal)
+
+Triggered by Shopify each time the access token expires (TTL: 1 hour). Extends the customer session up to 90 days without requiring the customer to log in again.
+
+```mermaid
+sequenceDiagram
+    participant RP as Shopify (RP)
+    participant OP as SSO Server (OP)<br>/token
+
+    Note over RP: Access token expired (1-hour TTL)
+    RP->>OP: POST /token<br>(grant_type=refresh_token,<br>refresh_token, client_id, client_secret)
+    Note over RP,OP: server-to-server call
+    OP->>OP: Verify refresh token JWT<br>(RS256 signature, token_use="refresh",<br>expiry ≤ 90 days)
+    OP->>OP: Sign new id_token, access_token,<br>refresh_token (rotation)
+    OP->>RP: id_token, access_token,<br>refresh_token (rotated), expires_in=3600
+    RP->>RP: Update customer session
+```
+
+**Key points:**
+- Called **server-to-server** by Shopify when the access token expires. The customer's browser is not involved.
+- The refresh token is a **self-contained RS256 JWT** with a 90-day TTL. The OP verifies it cryptographically — no database lookup needed.
+- **Token rotation**: every call issues a fresh refresh token. The previous refresh token is not reusable (it will fail JWT expiry/replay checks on subsequent calls).
+- `expires_in: 3600` in the response signals Shopify how often to call this endpoint (every hour).
+- If the refresh token is expired or the signature is invalid, the OP returns `invalid_grant` and Shopify terminates the customer session.
+- See [Session and token requirements](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/requirements#session-and-token-requirements) for Shopify's expectations.
 
 ---
 

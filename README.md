@@ -167,7 +167,7 @@ Both services deploy from the same GitHub repository.
 | Variable | Value |
 |---|---|
 | `BASE_URL` | `https://your-login-server.onrender.com` |
-| `SESSION_SECRET` | Random string |
+| `SESSION_SECRET` | Random string — can differ from the OIDC server's value (session cookies are not shared between servers) |
 | `PRIVATE_KEY_PEM` | Same PEM value as the OIDC server |
 
 #### 4. Register the OIDC server URL in Shopify
@@ -257,11 +257,12 @@ If you are hosting on Render, set the same variables in the Render Dashboard as 
 
 ## Architecture
 
-See **[ARCHITECTURE.md](ARCHITECTURE.md)** for sequence diagrams of all four flows:
+See **[ARCHITECTURE.md](ARCHITECTURE.md)** for sequence diagrams of each flow:
 - Flow 0 — App Installation OAuth
 - Flow 1 — OIDC Authorization Code Flow (Login with profile sync)
 - Flow 2 — Customer Account UI Extension (profile sync)
 - Flow 3 — Webhook (customers/update)
+- Flow 4 — Refresh Token Grant (session renewal)
 
 ## Demo
 
