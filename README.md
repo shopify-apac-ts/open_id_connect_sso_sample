@@ -111,7 +111,7 @@ Flow 1 (OIDC login) works standalone with the variables above. To also test **Fl
 
 ### 1. Create an app in the Partner Dashboard
 
-1. Log in to the [Shopify Partner Dashboard](https://partners.shopify.com/) and go to **Apps → Create app → Create app manually**.
+1. Log in to the [Shopify dev dashboard](https://dev.shopify.com/dashboard) and go to **Apps → Create app → Create app manually**.
 2. Give the app a name and confirm. The **Client ID** and **API secret key** are shown on the app credentials page — note both for the next step.
 
 ### 2. Configure and deploy with `shopify.app.toml`
