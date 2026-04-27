@@ -43,21 +43,34 @@ pnpm install
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` with the minimum variables required for **Flow 1** (OIDC login):
 
 ```
-BASE_URL=http://localhost:3000   # Change to your Render URL after deployment
+BASE_URL=https://<your-tunnel-url>   # Must be publicly accessible — see step 3
 SESSION_SECRET=<random string>
 CLIENT_ID=<client ID registered in Shopify>
 CLIENT_SECRET=<client secret registered in Shopify>
-SHOPIFY_API_SECRET=<API secret key of your Shopify app>
 ```
+
+> Additional variables for Flow 0, 2, and 3 are added later — see [Flow 0, 2, 3: Shopify App Setup](#flow-0-2-3-shopify-app-setup).
 
 ### 3. Start the development server
 
 ```bash
 pnpm dev
 ```
+
+Shopify makes a **server-to-server call** to `/token` during login, so the SSO server must be reachable from the internet even during local development. Use a port-forwarding tool to expose `localhost:3000`:
+
+```bash
+# Cloudflare Tunnel (no account needed for temporary URLs)
+cloudflared tunnel --url http://localhost:3000
+
+# Alternative: ngrok
+ngrok http 3000
+```
+
+Set `BASE_URL` in `.env` to the public URL printed by the tunnel tool before starting the server.
 
 ## Deploying to Render
 
@@ -83,6 +96,48 @@ In the Shopify admin or Partner Dashboard, enter the following SSO provider sett
 | Client Secret | Same value as `CLIENT_SECRET` in your environment |
 | Additional scopes | `profile` |
 | Logout redirect URI parameter name | `post_logout_redirect_uri` |
+
+## Flow 0, 2, 3: Shopify App Setup
+
+Flow 1 (OIDC login) works standalone with the variables above. To also test **Flow 0** (Admin API token acquisition), **Flow 2** (UI Extension profile sync), or **Flow 3** (webhook-based data overwrite), you need a Shopify app installed on a development store.
+
+### 1. Create an app in the Partner Dashboard
+
+1. Log in to the [Shopify Partner Dashboard](https://partners.shopify.com/) and create a new app.
+2. In the app settings, configure:
+   - **App URL**: `https://<your-server-url>/auth`
+   - **Allowed redirection URL(s)**: `https://<your-server-url>/auth/callback`
+3. Note the **API key** (`SHOPIFY_API_KEY`) and **API secret key** (`SHOPIFY_API_SECRET`) from the app credentials page.
+
+See [Build a Shopify app](https://shopify.dev/docs/apps/build) for details on creating and configuring apps.
+
+### 2. Install on a development store
+
+Open the following URL in a browser to trigger the OAuth installation flow (Flow 0):
+
+```
+https://<your-server-url>/auth?shop=<your-store>.myshopify.com
+```
+
+After approval, the server caches an Admin API token for the store — required by Flow 2 and Flow 3.
+
+### 3. Register the webhook (Flow 3 only)
+
+In the Partner Dashboard → app settings → Webhooks, subscribe to the `customers/update` topic:
+
+- **URL**: `https://<your-server-url>/webhooks/customers-update`
+- **Format**: JSON
+
+See [Subscribe to webhooks](https://shopify.dev/docs/apps/build/webhooks/subscribe/create-delete) for details.
+
+### 4. Add the additional environment variables
+
+```
+SHOPIFY_API_KEY=<API key from app credentials>
+SHOPIFY_API_SECRET=<API secret key from app credentials>
+SHOPIFY_ADMIN_API_VERSION=2026-04
+WEBHOOK_DATA_SYNC=true    # Set to false to log only without writing to Shopify (Flow 3)
+```
 
 ## Architecture
 
