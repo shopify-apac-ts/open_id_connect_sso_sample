@@ -263,6 +263,7 @@ See **[ARCHITECTURE.md](ARCHITECTURE.md)** for sequence diagrams of each flow:
 - Flow 2 — Customer Account UI Extension (profile sync)
 - Flow 3 — Webhook (customers/update)
 - Flow 4 — Refresh Token Grant (session renewal)
+- Split-Server Deployment (optional two-server topology)
 
 ## Demo
 

@@ -91,7 +91,7 @@ sequenceDiagram
   See Flow 2 for `/userinfo` usage (UI Extension, post-login profile sync).
 
 - **Shopify-side setting required for profile sync:** For Shopify to apply these claims and overwrite the customer record at login, the identity provider's **Sync customer data** setting must be enabled in Shopify Admin (Settings → Customer accounts → Authentication → Manage providers), and the overwrite rule must be set to **Overwrite existing customer data**. Without this setting, the claims are received but not applied. See [Sync customer data](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/sync-customer-data).
-- **Refresh tokens are required to maintain the 90-day session.** Shopify's customer session can last up to 90 days, but the access token expires after 1 hour. Shopify calls `/token` with `grant_type=refresh_token` each time the access token expires to extend the session. If the refresh token is missing or fails verification, the customer session ends when the access token expires (1 hour after login). See [Session and token requirements](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/requirements#session-and-token-requirements) and Flow 4 for the refresh token sequence.
+- **Refresh tokens are required to maintain the 90-day session.** See Flow 4 for the refresh token sequence and [Session and token requirements](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/requirements#session-and-token-requirements).
 
 ---
 
@@ -261,4 +261,5 @@ sequenceDiagram
 - `LOGIN_SERVER_URL` controls the redirect target in `/authorize`. If unset (default), `/login` on the same server is used — no behavior change.
 - Both servers must share the same RSA key pair via `PRIVATE_KEY_PEM`. If unset, each server auto-generates its own key at startup (single-server only).
 - The authorization code is a **self-contained RS256 JWT** — the OIDC server verifies it cryptographically without a shared database or inter-server call.
+- **In production, the OIDC server must access user profile data from the Login server.** When `/token` or `/userinfo` needs to return the user's profile (name, address, etc.), the OIDC server has no local copy of that data — it lives on the Login server. Access it via a direct database connection shared between both servers, or an internal API endpoint on the Login server. In this sample, `getShopifyClaimsProfile()` and `getSsoTestProfile()` return hardcoded test data and serve as the placeholder for this integration point.
 - See [README — Split-Server Deployment](README.md#split-server-deployment-optional) for step-by-step setup instructions.

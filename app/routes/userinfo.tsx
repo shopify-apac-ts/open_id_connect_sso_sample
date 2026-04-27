@@ -120,6 +120,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     console.warn("[userinfo] using fallback email:", email);
   }
 
+  // In split-server mode, fetch the real user profile from the Login server here
+  // (e.g. via a shared DB or an internal API call) instead of using hardcoded test data.
   const profile = getSsoTestProfile(sub);
 
   // Embed Admin API query and response into address1/address2 for demo visibility.

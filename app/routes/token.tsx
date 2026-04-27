@@ -144,6 +144,8 @@ export async function action({ request }: ActionFunctionArgs) {
     // Replay within the 10-minute window is a known limitation of this sample.
 
     const { userId, email, scope, nonce } = authData;
+    // In split-server mode, fetch the real user profile from the Login server here
+    // (e.g. via a shared DB or an internal API call) instead of using hardcoded test data.
     const shopifyClaims = getShopifyClaimsProfile(userId);
     console.log("[token] shopifyClaims to embed:", JSON.stringify(shopifyClaims, null, 2));
 
@@ -178,6 +180,8 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!rtData) return oidcError("invalid_grant", "Invalid or expired refresh_token");
 
     const { sub: userId, email, scope } = rtData;
+    // In split-server mode, fetch the real user profile from the Login server here
+    // (e.g. via a shared DB or an internal API call) instead of using hardcoded test data.
     const shopifyClaims = getShopifyClaimsProfile(userId);
     console.log("[token] refresh shopifyClaims to embed:", JSON.stringify(shopifyClaims, null, 2));
 
