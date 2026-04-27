@@ -226,6 +226,7 @@ sequenceDiagram
 - **Token rotation**: every call issues a fresh refresh token. The previous refresh token is not reusable (it will fail JWT expiry/replay checks on subsequent calls).
 - `expires_in: 3600` in the response signals Shopify how often to call this endpoint (every hour).
 - If the refresh token is expired or the signature is invalid, the OP returns `invalid_grant` and Shopify terminates the customer session.
+- **To enforce a fixed session lifetime:** if you want Shopify to end the customer session at a specific time (e.g. after 1 hour), simply omit the `refresh_token` field from the `/token` response. Without a refresh token, Shopify cannot renew the access token and will terminate the session when it expires.
 - See [Session and token requirements](https://help.shopify.com/en/manual/customers/customer-accounts/sign-in-options/identity-provider/requirements#session-and-token-requirements) for Shopify's expectations.
 
 ---
