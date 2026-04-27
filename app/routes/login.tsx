@@ -6,8 +6,7 @@ import type {
 } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
-import { v4 as uuidv4 } from "uuid";
-import { storeAuthCode } from "~/lib/store.server";
+import { signAuthCode } from "~/lib/oidc.server";
 
 export const meta: MetaFunction = () => [{ title: "Sign In - SSO Sample" }];
 
@@ -49,8 +48,7 @@ export async function action({ request }: ActionFunctionArgs) {
     ? rawSub.trim()
     : `user_${Buffer.from(email.toLowerCase()).toString("hex").slice(0, 16)}`;
 
-  const code = uuidv4();
-  storeAuthCode(code, {
+  const code = await signAuthCode({
     userId,
     email,
     clientId,
@@ -59,7 +57,6 @@ export async function action({ request }: ActionFunctionArgs) {
     nonce: nonce || undefined,
     codeChallenge: codeChallenge || undefined,
     codeChallengeMethod: codeChallengeMethod || undefined,
-    createdAt: Date.now(),
   });
 
   // Redirect to Shopify's callback URL

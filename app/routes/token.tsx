@@ -11,12 +11,9 @@ import {
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
+  verifyAuthCode,
 } from "~/lib/oidc.server";
-import {
-  getAuthCode,
-  deleteAuthCode,
-  getShopifyClaimsProfile,
-} from "~/lib/store.server";
+import { getShopifyClaimsProfile } from "~/lib/store.server";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -110,9 +107,9 @@ export async function action({ request }: ActionFunctionArgs) {
   if (grant_type === "authorization_code") {
     if (!code) return oidcError("invalid_request", "code is required");
 
-    const authData = getAuthCode(code);
+    const authData = await verifyAuthCode(code);
     if (!authData) {
-      console.log("[token] ERROR: invalid_grant - code not found:", code);
+      console.log("[token] ERROR: invalid_grant - code not found or expired");
       return oidcError("invalid_grant", "Invalid or expired code");
     }
 
@@ -143,8 +140,8 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     }
 
-    // Authorization codes are single-use
-    deleteAuthCode(code);
+    // JWT auth codes are stateless — expiry (10 min) enforces single-use window.
+    // Replay within the 10-minute window is a known limitation of this sample.
 
     const { userId, email, scope, nonce } = authData;
     const shopifyClaims = getShopifyClaimsProfile(userId);

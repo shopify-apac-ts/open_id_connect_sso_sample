@@ -198,3 +198,38 @@ sequenceDiagram
 - Direction B (SSO → Shopify) mirrors what the UI Extension does, but server-side.
 - Non-2xx responses trigger automatic Shopify webhook retry.
 - `X-Shopify-Hmac-Sha256` is verified with `timingSafeEqual` to prevent timing attacks.
+
+---
+
+## Split-Server Deployment (Optional)
+
+The default setup runs all endpoints on one server. When `LOGIN_SERVER_URL` is set, `/authorize` redirects the browser to the login UI on a separate server.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant RP as Shopify (RP)
+    participant OIDC as OIDC Server<br>/authorize /token /.well-known/*
+    participant Login as Login Server<br>/login
+
+    Customer->>RP: Access protected resource
+    RP->>OIDC: GET /authorize (OIDC params)
+    OIDC->>OIDC: Validate params
+    OIDC->>Customer: 302 Redirect to LOGIN_SERVER_URL/login
+    Customer->>Login: GET /login (all OIDC params forwarded)
+    Customer->>Login: POST /login (email, password)
+    Login->>Login: Authenticate, sign auth code JWT<br>(RS256, shared PRIVATE_KEY_PEM, 10 min TTL)
+    Login->>Customer: 302 Redirect to redirect_uri with code
+    Customer->>RP: Browser delivers code to Shopify callback
+    RP->>OIDC: POST /token (code, client_secret, code_verifier)
+    OIDC->>OIDC: Verify JWT code signature<br>(shared PRIVATE_KEY_PEM)
+    OIDC->>RP: id_token, access_token, refresh_token
+    RP->>RP: Verify ID Token, establish session
+    RP->>Customer: Redirect to storefront (logged in)
+```
+
+**Key points:**
+- `LOGIN_SERVER_URL` controls the redirect target in `/authorize`. If unset (default), `/login` on the same server is used — no behavior change.
+- Both servers must share the same RSA key pair via `PRIVATE_KEY_PEM`. If unset, each server auto-generates its own key at startup (single-server only).
+- The authorization code is a **self-contained RS256 JWT** — the OIDC server verifies it cryptographically without a shared database or inter-server call.
+- See [README — Split-Server Deployment](README.md#split-server-deployment-optional) for step-by-step setup instructions.

@@ -1,23 +1,35 @@
-import { generateKeyPair, exportJWK, type KeyLike } from "jose";
+import { generateKeyPair, exportJWK, importPKCS8, importSPKI, type KeyLike } from "jose";
+import { createPublicKey } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 
 let _privateKey: KeyLike | undefined;
 let _publicKey: KeyLike | undefined;
 let _publicJwk: Record<string, unknown> | undefined;
-// Generate a unique kid on each startup so relying parties (e.g. Shopify)
-// that cache JWKS by kid will see a new kid and re-fetch the key set.
-const KEY_ID = `sso-key-${uuidv4()}`;
-
+let _keyId: string | undefined;
 let _initPromise: Promise<void> | undefined;
 
 async function initialize() {
-  const { privateKey, publicKey } = await generateKeyPair("RS256", {
-    modulusLength: 2048,
-  });
-  _privateKey = privateKey;
-  _publicKey = publicKey;
-  const jwk = await exportJWK(publicKey);
-  _publicJwk = { ...jwk, kid: KEY_ID, use: "sig", alg: "RS256" };
+  const pemInput = process.env.PRIVATE_KEY_PEM;
+  if (pemInput) {
+    // Fixed key from env var — required for split-server deployments so both
+    // the OIDC server and the Login server share the same signing key.
+    const pem = pemInput.replace(/\\n/g, "\n");
+    _privateKey = await importPKCS8(pem, "RS256");
+    const pubPem = createPublicKey(pem).export({ type: "spki", format: "pem" }) as string;
+    _publicKey = await importSPKI(pubPem, "RS256");
+    _keyId = "sso-key-fixed";
+  } else {
+    // Auto-generate a fresh key pair on each startup (single-server default).
+    // A unique kid causes JWKS-caching relying parties to re-fetch the key set.
+    const { privateKey, publicKey } = await generateKeyPair("RS256", {
+      modulusLength: 2048,
+    });
+    _privateKey = privateKey;
+    _publicKey = publicKey;
+    _keyId = `sso-key-${uuidv4()}`;
+  }
+  const jwk = await exportJWK(_publicKey!);
+  _publicJwk = { ...jwk, kid: _keyId, use: "sig", alg: "RS256" };
 }
 
 function ensureInitialized() {
@@ -29,7 +41,7 @@ function ensureInitialized() {
 
 export async function getPrivateKey() {
   await ensureInitialized();
-  return { key: _privateKey!, kid: KEY_ID };
+  return { key: _privateKey!, kid: _keyId! };
 }
 
 export async function getPublicKey() {

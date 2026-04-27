@@ -2,7 +2,7 @@
 // Receives the redirect from Shopify and forwards to the login page
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { getClientId } from "~/lib/oidc.server";
+import { getClientId, getLoginServerUrl } from "~/lib/oidc.server";
 
 function errorResponse(error: string, description: string, status = 400) {
   return new Response(
@@ -38,8 +38,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // Log all incoming parameters from Shopify for debugging
   console.log("[authorize] incoming params:", JSON.stringify(Object.fromEntries(p.entries())));
 
-  // Forward all parameters to the login page
-  const loginUrl = new URL("/login", url.origin);
+  // Forward all parameters to the login page.
+  // LOGIN_SERVER_URL overrides the origin for split-server deployments.
+  const loginBase = getLoginServerUrl() || url.origin;
+  const loginUrl = new URL("/login", loginBase);
   for (const [key, value] of p.entries()) {
     loginUrl.searchParams.set(key, value);
   }

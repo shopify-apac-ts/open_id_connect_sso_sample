@@ -76,30 +76,3 @@ export function getShopifyClaimsProfile(_userId: string): ShopifyClaimsProfile {
   };
 }
 
-export interface AuthCodeData {
-  userId: string;
-  email: string;
-  clientId: string;
-  redirectUri: string;
-  scope: string;
-  nonce?: string;
-  codeChallenge?: string;
-  codeChallengeMethod?: string;
-  createdAt: number;
-}
-
-const authCodes = new Map<string, AuthCodeData>();
-
-export function storeAuthCode(code: string, data: AuthCodeData) {
-  authCodes.set(code, data);
-  // Auto-delete after 10 minutes
-  setTimeout(() => authCodes.delete(code), 10 * 60 * 1000);
-}
-
-export function getAuthCode(code: string): AuthCodeData | undefined {
-  return authCodes.get(code);
-}
-
-export function deleteAuthCode(code: string) {
-  authCodes.delete(code);
-}

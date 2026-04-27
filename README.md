@@ -110,6 +110,74 @@ For build and run commands, see [`render.yaml`](render.yaml).
 
 > **Note**: The Render Free plan spins down on idle. When it wakes up, the RSA key pair is regenerated and any existing tokens become invalid. This is expected behavior for testing purposes.
 
+## Split-Server Deployment (Optional)
+
+By default, all OIDC endpoints (`/authorize`, `/token`, `/.well-known/*`) and the SSO login UI (`/login`) run on the same server. This section explains how to split them across two separate Render services.
+
+### When to use this
+
+Use split-server mode when your OIDC endpoints and login UI must live on different domains — for example, when reusing an existing SSO login page hosted elsewhere.
+
+### How it works
+
+`/authorize` normally redirects the browser to `/login` on the same server. When `LOGIN_SERVER_URL` is set, it redirects to `/login` on the external login server instead.
+
+The authorization code is a **JWT** (RS256, 10-minute TTL) signed with the OIDC server's RSA private key. Both servers share the same key pair via `PRIVATE_KEY_PEM`, so the OIDC server can verify a code that the login server signed — no shared database needed.
+
+### Setup
+
+#### 1. Generate a shared RSA key
+
+Run this once and save the output:
+
+```bash
+openssl genrsa 2048 | awk 'NR==1{print} NR>1{printf "%s\\n", $0}'
+```
+
+This prints the private key with literal `\n` instead of newlines — the format required for the `PRIVATE_KEY_PEM` environment variable.
+
+#### 2. Deploy two Render services from the same repository
+
+| Service | Role |
+|---|---|
+| OIDC Server | Handles `/authorize`, `/token`, `/.well-known/*`, `/userinfo` |
+| Login Server | Handles `/login`, `/logout` |
+
+Both services deploy from the same GitHub repository.
+
+#### 3. Set environment variables
+
+**OIDC Server:**
+
+| Variable | Value |
+|---|---|
+| `BASE_URL` | `https://your-oidc-server.onrender.com` |
+| `CLIENT_ID` | Same as registered in Shopify |
+| `CLIENT_SECRET` | Same as registered in Shopify |
+| `SESSION_SECRET` | Random string |
+| `LOGIN_SERVER_URL` | `https://your-login-server.onrender.com` |
+| `PRIVATE_KEY_PEM` | PEM output from step 1 (with `\n` literals) |
+
+**Login Server:**
+
+| Variable | Value |
+|---|---|
+| `BASE_URL` | `https://your-login-server.onrender.com` |
+| `SESSION_SECRET` | Random string |
+| `PRIVATE_KEY_PEM` | Same PEM value as the OIDC server |
+
+#### 4. Register the OIDC server URL in Shopify
+
+Use the OIDC server's URL for the discovery endpoint — **not** the login server's URL:
+
+```
+https://your-oidc-server.onrender.com/.well-known/openid-configuration
+```
+
+All Shopify-to-IdP calls (`/token`, `/.well-known/jwks.json`, etc.) target the OIDC server. The browser-visible login UI (`/login`) is served by the login server.
+
+---
+
 ## Registering in Shopify
 
 In the Shopify admin, go to **Settings → Customer accounts → Authentication → Manage providers → Connect a provider** and enter the following settings:

@@ -86,6 +86,71 @@ export async function signAccessToken({
     .sign(key);
 }
 
+// LOGIN_SERVER_URL: if set, /authorize redirects to an external login server.
+// Leave unset to run the login UI on the same server (default).
+export function getLoginServerUrl(): string {
+  return (process.env.LOGIN_SERVER_URL || "").replace(/\/$/, "");
+}
+
+export interface AuthCodeClaims {
+  userId: string;
+  email: string;
+  clientId: string;
+  redirectUri: string;
+  scope: string;
+  nonce?: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+}
+
+const AUTH_CODE_TTL_SECS = 600; // 10 minutes — matches in-memory store TTL
+
+export async function signAuthCode(claims: AuthCodeClaims): Promise<string> {
+  const { key, kid } = await getPrivateKey();
+  const now = Math.floor(Date.now() / 1000);
+
+  const payload: Record<string, unknown> = {
+    email: claims.email,
+    scope: claims.scope,
+    redirect_uri: claims.redirectUri,
+    token_use: "authcode",
+  };
+  if (claims.nonce) payload.nonce = claims.nonce;
+  if (claims.codeChallenge) payload.code_challenge = claims.codeChallenge;
+  if (claims.codeChallengeMethod) payload.code_challenge_method = claims.codeChallengeMethod;
+
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "RS256", kid })
+    .setAudience(claims.clientId)
+    .setSubject(claims.userId)
+    .setIssuedAt(now)
+    .setExpirationTime(now + AUTH_CODE_TTL_SECS)
+    .sign(key);
+}
+
+export async function verifyAuthCode(code: string): Promise<AuthCodeClaims | null> {
+  try {
+    const publicKey = await getPublicKey();
+    const { payload } = await jwtVerify(code, publicKey);
+    const p = payload as Record<string, unknown>;
+    if (p.token_use !== "authcode") return null;
+    if (!payload.sub || !p.email || !payload.aud || !p.scope || !p.redirect_uri) return null;
+    const clientId = Array.isArray(payload.aud) ? payload.aud[0] : payload.aud;
+    return {
+      userId: payload.sub,
+      email: p.email as string,
+      clientId: clientId as string,
+      redirectUri: p.redirect_uri as string,
+      scope: p.scope as string,
+      nonce: p.nonce as string | undefined,
+      codeChallenge: p.code_challenge as string | undefined,
+      codeChallengeMethod: p.code_challenge_method as string | undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 const REFRESH_TOKEN_TTL_SECS = 90 * 24 * 3600;
 
 export async function signRefreshToken({
