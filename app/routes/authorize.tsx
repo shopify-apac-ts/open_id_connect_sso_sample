@@ -35,6 +35,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
     return errorResponse("unauthorized_client", "Unknown client_id", 401);
   }
 
+  // SECURITY NOTE (sample limitation):
+  // For a production IdP, redirect_uri MUST be validated against an allowlist
+  // to prevent this endpoint from being abused as an open redirector for phishing.
+  // Shopify shows the callback URL on the IdP configuration screen
+  // (Settings → Customer accounts → Authentication → Manage providers → Connect a provider).
+  // Register that exact URL on the IdP side (e.g. via env var) and reject any incoming
+  // redirect_uri that does not match it byte-for-byte. Example:
+  //   if (redirectUri !== process.env.SHOPIFY_REDIRECT_URI) {
+  //     return errorResponse("invalid_request", "redirect_uri not allowed", 400);
+  //   }
+  // This sample omits the check intentionally for testing flexibility.
+
   // Log all incoming parameters from Shopify for debugging
   console.log("[authorize] incoming params:", JSON.stringify(Object.fromEntries(p.entries())));
 
