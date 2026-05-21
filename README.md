@@ -265,6 +265,10 @@ See **[ARCHITECTURE.md](ARCHITECTURE.md)** for sequence diagrams of each flow:
 - Flow 4 — Refresh Token Grant (session renewal)
 - Split-Server Deployment (optional two-server topology)
 
+## FAQ
+
+See **[FAQ.md](FAQ.md)** for merchant and partner questions about setup, profile sync, `sub` handling, split-server mode, webhooks, theme login redirects, and production readiness.
+
 ## Demo
 
 See the **[Wiki](../../wiki)** for demo videos of each scenario.
